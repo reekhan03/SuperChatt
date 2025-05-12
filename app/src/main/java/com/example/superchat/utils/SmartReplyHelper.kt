@@ -5,27 +5,26 @@ import com.google.mlkit.nl.smartreply.SmartReply
 import com.google.mlkit.nl.smartreply.SmartReplySuggestion
 import com.google.mlkit.nl.smartreply.SmartReplySuggestionResult
 import com.google.mlkit.nl.smartreply.TextMessage
+import com.google.mlkit.nl.smartreply.*
 
 
-// Инициализация SmartReply
-val smartReply = SmartReply.getClient()
-fun generateSmartReplies() {
-    val conversation = listOf(
-        TextMessage.createForLocalUser("Привет, как дела?", System.currentTimeMillis()),
-        TextMessage.createForRemoteUser("Все отлично, спасибо! А у тебя?", System.currentTimeMillis(), "user1")
-    )
+fun generateSmartReplies(chatHistory: List<Pair<String, String>>, currentUserId: String, onResult: (List<String>) -> Unit) {
+    val conversation = chatHistory.map { (senderId, message) ->
+        if (senderId == currentUserId)
+            TextMessage.createForLocalUser(message, System.currentTimeMillis())
+        else
+            TextMessage.createForRemoteUser(message, System.currentTimeMillis(), senderId)
+    }
 
-    SmartReply.getClient().suggestReplies(conversation)
-        .addOnSuccessListener { result: SmartReplySuggestionResult ->
-            if (result.status == SmartReplySuggestionResult.STATUS_NOT_SUPPORTED_LANGUAGE) {
-                Log.d("SmartReply", "Язык не поддерживается.")
-            } else if (result.status == SmartReplySuggestionResult.STATUS_SUCCESS) {
-                result.suggestions.forEach { suggestion ->
-                    Log.d("SmartReply", "Suggested reply: ${suggestion.text}")
-                }
+    SmartReply.getClient()
+        .suggestReplies(conversation)
+        .addOnSuccessListener { result ->
+            if (result.status == SmartReplySuggestionResult.STATUS_SUCCESS) {
+                val suggestions = result.suggestions.map { it.text }
+                onResult(suggestions)
             }
         }
-        .addOnFailureListener { e ->
-            Log.e("SmartReply", "Ошибка: ", e)
+        .addOnFailureListener {
+            onResult(emptyList())
         }
 }

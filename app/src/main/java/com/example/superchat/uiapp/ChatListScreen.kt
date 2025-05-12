@@ -8,71 +8,64 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import com.example.superchat.model.Chat
+import com.example.superchat.navigation.Screen
 import com.example.superchat.viewmodel.ChatListViewModel
+import com.google.firebase.database.FirebaseDatabase
 import java.text.SimpleDateFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatListScreen(
-    currentUserId: String,
-    navController: NavController,
-    viewModel: ChatListViewModel = viewModel()
-) {
-//    val chats by viewModel.chats.observeAsState(emptyList())
+fun ChatListScreen(currentUserId: String, navController: NavHostController) {
+    val usersRef = FirebaseDatabase.getInstance().getReference("users")
+    val users = remember { mutableStateListOf<Pair<String, String>>() } // uid to email
 
-    val sampleChats = listOf(
-        Chat(
-            chatId = "chat1",
-            lastMessage = "Привет, как дела?",
-            timestamp = System.currentTimeMillis() - 60 * 60 * 1000, // 1 час назад
-            participants = mapOf("user1" to true, "user2" to true)
-        ),
-        Chat(
-            chatId = "chat2",
-            lastMessage = "Завтра встречаемся в 18:00!",
-            timestamp = System.currentTimeMillis() - 24 * 60 * 60 * 1000, // 1 день назад
-            participants = mapOf("user1" to true, "user3" to true)
-        ),
-        Chat(
-            chatId = "chat3",
-            lastMessage = "Окей, договорились!",
-            timestamp = System.currentTimeMillis() - 3 * 60 * 1000, // 3 минуты назад
-            participants = mapOf("user2" to true, "user4" to true)
-        )
-    )
-    val chats = sampleChats
-    Scaffold(
-        topBar = {
-            TopAppBar(title = { Text("Chats") })
+
+    LaunchedEffect(true) {
+        usersRef.get().addOnSuccessListener { snapshot ->
+            users.clear()
+            for (child in snapshot.children) {
+                val uid = child.key ?: continue
+                val email = child.child("email").getValue(String::class.java) ?: continue
+                if (uid != currentUserId) {
+                    users.add(uid to email)
+                }
+            }
         }
-    ) { padding ->
-        LazyColumn(
-            contentPadding = padding,
-            modifier = Modifier.fillMaxSize()
-        ) {
-            items(chats) { chat ->
-                ChatItem(
-                    chatTitle = "Sam", // при желании можно заменить на chat.title
-                    lastMessage = chat.lastMessage,
-                    timestamp = chat.timestamp,
-                    onClick = {
-                        navController.navigate("chat/${chat.chatId}/${currentUserId}")
+    }
+
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Text("Users:", style = MaterialTheme.typography.titleLarge)
+        Spacer(modifier = Modifier.height(8.dp))
+        users.forEach { (uid, email) ->
+            Button(
+                onClick = {
+                    createOrOpenChat(currentUserId, uid) { chatId ->
+                        navController.navigate(Screen.Chat.route + "/$chatId/$currentUserId")
                     }
-                )
+                },
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+            ) {
+                Text(email)
             }
         }
     }
 }
+
+
 
 @Composable
 fun ChatItem(
@@ -110,3 +103,40 @@ fun ChatItem(
 
     Divider()
 }
+
+fun createOrOpenChat(currentUserId: String, otherUserId: String, onChatReady: (String) -> Unit) {
+    val chatRef = FirebaseDatabase.getInstance().getReference("chats")
+
+    chatRef.get().addOnSuccessListener { snapshot ->
+        var existingChatId: String? = null
+
+        for (chatSnap in snapshot.children) {
+            val participants = chatSnap.child("participants").value as? Map<*, *>
+            if (participants != null &&
+                participants.containsKey(currentUserId) &&
+                participants.containsKey(otherUserId)
+            ) {
+                existingChatId = chatSnap.key
+                break
+            }
+        }
+
+        if (existingChatId != null) {
+            // Чат уже существует
+            onChatReady(existingChatId!!)
+        } else {
+            // Создаем новый чат
+            val newChatRef = chatRef.push()
+            val participants = mapOf(currentUserId to true, otherUserId to true)
+            val chatData = mapOf(
+                "participants" to participants,
+                "lastMessage" to "",
+                "timestamp" to System.currentTimeMillis()
+            )
+            newChatRef.setValue(chatData).addOnSuccessListener {
+                onChatReady(newChatRef.key!!)
+            }
+        }
+    }
+}
+

@@ -13,6 +13,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
 import com.example.superchat.navigation.Screen
+import com.google.firebase.database.FirebaseDatabase
 
 @Composable
 fun RegisterScreen(navController: NavHostController) {
@@ -74,6 +75,11 @@ fun registerUser(
         .addOnCompleteListener { task ->
             if (task.isSuccessful) {
                 val user = auth.currentUser
+                val uid = user?.uid
+                val userData = mapOf("email" to email)
+
+                FirebaseDatabase.getInstance().getReference("users").child(uid!!).setValue(userData)
+
                 Toast.makeText(context, "Registration successful!", Toast.LENGTH_SHORT).show()
 
                 navController.navigate(

@@ -29,15 +29,15 @@ fun NavGraph(startDestination: String = Screen.Login.route) {
             ChatListScreen(currentUserId = currentUserId, navController = navController)
         }
         composable(
-            Screen.Chat.route,
+            route = Screen.Chat.route + "/{currentUserId}/{receiverId}",
             arguments = listOf(
-                navArgument("chatId") { type = NavType.StringType },
-                navArgument("currentUserId") { type = NavType.StringType }
+                navArgument("currentUserId") { type = NavType.StringType },
+                navArgument("receiverId") { type = NavType.StringType }
             )
-        ) { backStackEntry ->
-            val chatId = backStackEntry.arguments?.getString("chatId") ?: return@composable
-            val currentUserId = backStackEntry.arguments?.getString("currentUserId") ?: return@composable
-            ChatScreen(chatId = chatId, currentUserId = currentUserId, navController = navController)
+        ) {
+            val currentUserId = it.arguments?.getString("currentUserId") ?: ""
+            val receiverId = it.arguments?.getString("receiverId") ?: ""
+            ChatScreen(currentUserId, receiverId, navController)
         }
     }
 }

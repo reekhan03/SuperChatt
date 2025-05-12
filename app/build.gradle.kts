@@ -56,7 +56,7 @@ dependencies {
 
     implementation ("com.google.mlkit:smart-reply:17.0.4")
 
-
+    implementation("com.google.firebase:firebase-database-ktx:20.3.0")
 
     // Jetpack Compose
     implementation(libs.androidx.core.ktx)
