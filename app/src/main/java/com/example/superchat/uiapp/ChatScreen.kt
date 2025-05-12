@@ -4,8 +4,13 @@ import androidx.compose.foundation.background
 import androidx.compose.runtime.*
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,9 +30,7 @@ fun ChatScreen(
     navController: NavHostController,
     viewModel: ChatViewModel = viewModel()
 ) {
-    // Используем observeAsState для получения сообщений
     val messages by viewModel.messages.observeAsState(emptyList())
-
     var newMessage by remember { mutableStateOf("") }
 
     LaunchedEffect(chatId) {
@@ -36,30 +39,61 @@ fun ChatScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Chat") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.AccountCircle, contentDescription = "Back")
-                    }
-                }
-            )
+            Column {
+                TopAppBar(
+                    title = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text("Sam", style = MaterialTheme.typography.titleLarge)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Icon(
+                                imageVector = Icons.Default.AccountCircle,
+                                contentDescription = "Profile",
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        }
+                    },
+                    actions = { Spacer(modifier = Modifier.size(32.dp)) } // пустое пространство для центрирования
+                )
+                Text(
+                    text = "20/02/2025, 14:25",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .padding(bottom = 8.dp)
+                )
+            }
         },
         bottomBar = {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(8.dp),
+                    .padding(16.dp), // увеличены отступы внизу
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                IconButton(onClick = { /* Handle attachment */ }) {
+                    Icon(Icons.Default.Add, contentDescription = "Attach")
+                }
                 TextField(
                     value = newMessage,
                     onValueChange = { newMessage = it },
                     modifier = Modifier
                         .weight(1f)
-                        .padding(8.dp)
-                        .background(Color.LightGray, shape = MaterialTheme.shapes.medium)
-                        .padding(12.dp)
+                        .padding(horizontal = 8.dp), // добавлены отступы для TextField
+                    placeholder = { Text("Send message") },
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White,
+                        disabledContainerColor = Color.White
+                    )
                 )
                 IconButton(onClick = {
                     if (newMessage.isNotBlank()) {
@@ -67,31 +101,35 @@ fun ChatScreen(
                         newMessage = ""
                     }
                 }) {
-                    Icon(Icons.Default.AccountCircle, contentDescription = "Send")
+                    Icon(Icons.Default.Send, contentDescription = "Send")
                 }
             }
         }
     ) { innerPadding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
-                .padding(innerPadding)
-                .padding(8.dp)
+                .fillMaxSize()
+                .padding(horizontal = 8.dp, vertical = 4.dp), // увеличены отступы для LazyColumn
+            verticalArrangement = Arrangement.Top,
+            reverseLayout = true // Чтобы последние сообщения были внизу
         ) {
-            messages.forEach { message ->
+            items(messages.reversed()) { message ->
                 val isCurrentUser = message.senderId == currentUserId
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp), // увеличены отступы для сообщений
                     horizontalArrangement = if (isCurrentUser) Arrangement.End else Arrangement.Start
                 ) {
                     Surface(
-                        color = if (isCurrentUser) Color.Black else Color.LightGray,
                         shape = MaterialTheme.shapes.medium,
-                        modifier = Modifier.padding(4.dp)
+                        color = if (isCurrentUser) Color.Black else Color(0xFFE5E5EA)
                     ) {
                         Text(
                             text = message.text,
                             color = if (isCurrentUser) Color.White else Color.Black,
-                            modifier = Modifier.padding(8.dp)
+                            modifier = Modifier
+                                .padding(horizontal = 16.dp, vertical = 12.dp) // увеличены отступы внутри bubble
                         )
                     }
                 }
