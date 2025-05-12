@@ -1,36 +1,31 @@
 package com.example.superchat.utils
 
-
-import com.google.mlkit.nl.smartreply.*
-import com.example.superchat.model.Message
-import com.google.android.gms.predictondevice.SmartReply
+import android.util.Log
+import com.google.mlkit.nl.smartreply.SmartReply
+import com.google.mlkit.nl.smartreply.SmartReplySuggestion
+import com.google.mlkit.nl.smartreply.SmartReplySuggestionResult
 import com.google.mlkit.nl.smartreply.TextMessage
 
-class SmartReplyHelper {
 
-//    private val smartReply = SmartReply.getClient()
-//
-//    fun getSuggestions(
-//        messages: List<Message>,
-//        onSuccess: (List<String>) -> Unit,
-//        onFailure: (Exception) -> Unit
-//    ) {
-//        val conversation = messages.map {
-//            if (it.isLocalUser) {
-//                TextMessage.createForLocalUser(it.text, it.timestamp)
-//            } else {
-//                TextMessage.createForRemoteUser(it.text, it.timestamp, it.userId)
-//            }
-//        }
-//
-//        smartReply.suggestReplies(conversation)
-//            .addOnSuccessListener { result ->
-//                if (result.status == SmartReplySuggestionResult.STATUS_SUCCESS) {
-//                    onSuccess(result.suggestions.map { it.text })
-//                }
-//            }
-//            .addOnFailureListener {
-//                onFailure(it)
-//            }
-//    }
+// Инициализация SmartReply
+val smartReply = SmartReply.getClient()
+fun generateSmartReplies() {
+    val conversation = listOf(
+        TextMessage.createForLocalUser("Привет, как дела?", System.currentTimeMillis()),
+        TextMessage.createForRemoteUser("Все отлично, спасибо! А у тебя?", System.currentTimeMillis(), "user1")
+    )
+
+    SmartReply.getClient().suggestReplies(conversation)
+        .addOnSuccessListener { result: SmartReplySuggestionResult ->
+            if (result.status == SmartReplySuggestionResult.STATUS_NOT_SUPPORTED_LANGUAGE) {
+                Log.d("SmartReply", "Язык не поддерживается.")
+            } else if (result.status == SmartReplySuggestionResult.STATUS_SUCCESS) {
+                result.suggestions.forEach { suggestion ->
+                    Log.d("SmartReply", "Suggested reply: ${suggestion.text}")
+                }
+            }
+        }
+        .addOnFailureListener { e ->
+            Log.e("SmartReply", "Ошибка: ", e)
+        }
 }

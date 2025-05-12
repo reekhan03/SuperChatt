@@ -54,6 +54,9 @@ dependencies {
     implementation ("androidx.compose.runtime:runtime-livedata:1.4.0") // Для поддержки LiveData в Compose
 
 
+    implementation ("com.google.mlkit:smart-reply:17.0.4")
+
+
 
     // Jetpack Compose
     implementation(libs.androidx.core.ktx)
