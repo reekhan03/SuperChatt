@@ -3,28 +3,23 @@ package com.example.superchat.uiapp
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.BlendMode.Companion.Screen
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
-import androidx.compose.ui.platform.LocalContext
-import com.example.superchat.navigation.NavGraph
-
+import com.example.superchat.navigation.Screen
 
 @Composable
 fun LoginScreen(navController: NavHostController) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     val auth = FirebaseAuth.getInstance()
-    val context = LocalContext.current // Получаем контекст для Toast
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -44,14 +39,14 @@ fun LoginScreen(navController: NavHostController) {
             value = password,
             onValueChange = { password = it },
             label = { Text("Password") },
-            modifier = Modifier.fillMaxWidth(),
-            visualTransformation = PasswordVisualTransformation() // Маскируем пароль
+            visualTransformation = PasswordVisualTransformation(),
+            modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(
             onClick = {
-                loginUser(email, password, auth, context, navController) // Переходим на другой экран после входа
+                loginUser(email, password, auth, context, navController)
             },
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -60,23 +55,20 @@ fun LoginScreen(navController: NavHostController) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Кнопка для перехода на экран регистрации
         TextButton(
-            onClick = { navController.navigate("register") }
+            onClick = { navController.navigate(Screen.Register.route) }
         ) {
             Text("Don't have an account? Register")
         }
     }
 }
 
-
-// Функция для входа с передачей контекста
 fun loginUser(
     email: String,
     password: String,
     auth: FirebaseAuth,
     context: Context,
-    navController: NavHostController // Передаем NavController для перехода
+    navController: NavHostController
 ) {
     auth.signInWithEmailAndPassword(email, password)
         .addOnCompleteListener { task ->
@@ -84,10 +76,11 @@ fun loginUser(
                 val user = auth.currentUser
                 Toast.makeText(context, "Login successful!", Toast.LENGTH_SHORT).show()
 
-                // Навигация на экран чатов
-                navController.navigate(Screen.ChatListScreen.name){
-                    popUpTo(Screen.LoginScreen.name) { inclusive = true }
-                } // Переход на экран чатов
+                navController.navigate(
+                    Screen.ChatList.route.replace("{currentUserId}", user?.uid ?: "")
+                ) {
+                    popUpTo(Screen.Login.route) { inclusive = true }
+                }
             } else {
                 Toast.makeText(
                     context,
@@ -97,7 +90,3 @@ fun loginUser(
             }
         }
 }
-
-
-
-

@@ -1,8 +1,6 @@
 package com.example.superchat.navigation
 
-
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import androidx.navigation.*
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -13,21 +11,25 @@ import com.example.superchat.uiapp.LoginScreen
 import com.example.superchat.uiapp.RegisterScreen
 
 @Composable
-fun NavGraph(startDestination: String = "login") {
+fun NavGraph(startDestination: String = Screen.Login.route) {
     val navController = rememberNavController()
 
     NavHost(navController = navController, startDestination = startDestination) {
-        composable("login") {
+        composable(Screen.Login.route) {
             LoginScreen(navController)
         }
-        composable("register") {
+        composable(Screen.Register.route) {
             RegisterScreen(navController)
         }
-        composable("chatList") {
-            ChatListScreen(navController = navController)  // Получение currentUserId внутри экрана
+        composable(
+            Screen.ChatList.route,
+            arguments = listOf(navArgument("currentUserId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val currentUserId = backStackEntry.arguments?.getString("currentUserId") ?: return@composable
+            ChatListScreen(currentUserId = currentUserId, navController = navController)
         }
         composable(
-            "chat/{chatId}/{currentUserId}",
+            Screen.Chat.route,
             arguments = listOf(
                 navArgument("chatId") { type = NavType.StringType },
                 navArgument("currentUserId") { type = NavType.StringType }
@@ -39,4 +41,3 @@ fun NavGraph(startDestination: String = "login") {
         }
     }
 }
-

@@ -2,7 +2,9 @@ package com.example.superchat.model
 
 
 data class Message(
-    val text: String = "",
     val senderId: String = "",
-    val timestamp: Long = 0L
+    val text: String = "",
+    val timestamp: Long = 0L,
+    val id: String = "" // добавляем поле id для хранения ID документа
 )
+
