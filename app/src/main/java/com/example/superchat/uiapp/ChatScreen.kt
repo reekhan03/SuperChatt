@@ -110,6 +110,7 @@ fun ChatScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(innerPadding)
                 .padding(horizontal = 8.dp, vertical = 4.dp),
             verticalArrangement = Arrangement.Top,
             reverseLayout = true  // Чтобы последние сообщения были внизу
