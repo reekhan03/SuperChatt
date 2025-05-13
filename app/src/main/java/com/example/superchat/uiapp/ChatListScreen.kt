@@ -31,9 +31,12 @@ import java.util.*
 @Composable
 fun ChatListScreen(currentUserId: String, navController: NavHostController) {
     val usersRef = FirebaseDatabase.getInstance().getReference("users")
-    val users = remember { mutableStateListOf<Pair<String, String>>() } // uid to email
+    val users = remember { mutableStateListOf<Pair<String, String>>() }
 
+    val viewModel: ChatListViewModel = viewModel()
+    val chatList by viewModel.chatList.observeAsState(emptyList())
 
+    // Загрузка всех пользователей (для новых чатов)
     LaunchedEffect(true) {
         usersRef.get().addOnSuccessListener { snapshot ->
             users.clear()
@@ -47,20 +50,49 @@ fun ChatListScreen(currentUserId: String, navController: NavHostController) {
         }
     }
 
+    // Загрузка существующих чатов
+    LaunchedEffect(currentUserId) {
+        viewModel.loadChatsWithUsers(currentUserId)
+    }
+
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text("Users:", style = MaterialTheme.typography.titleLarge)
+        Text("Existing Chats:", style = MaterialTheme.typography.titleLarge)
         Spacer(modifier = Modifier.height(8.dp))
+
+        if (chatList.isEmpty()) {
+            Text("No active chats yet.")
+        } else {
+            chatList.forEach { chatWithUser ->
+                ChatItem(
+                    chatTitle = chatWithUser.otherUser?.name ?: "Unknown",
+                    lastMessage = chatWithUser.chat.lastMessage,
+                    timestamp = chatWithUser.chat.timestamp
+                ) {
+                    navController.navigate(Screen.Chat.route + "/${chatWithUser.chat.chatId}/$currentUserId")
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text("Start New Chat:", style = MaterialTheme.typography.titleLarge)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        val fakeTimestamp = Calendar.getInstance().apply {
+            set(2025, Calendar.MARCH, 15, 12, 0, 0)
+        }.timeInMillis
+
         users.forEach { (uid, email) ->
-            Button(
+            ChatItem(
+                chatTitle = email,
+                lastMessage = "Start Messaging",
+                timestamp = fakeTimestamp,
                 onClick = {
                     createOrOpenChat(currentUserId, uid) { chatId ->
                         navController.navigate(Screen.Chat.route + "/$chatId/$currentUserId")
                     }
-                },
-                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
-            ) {
-                Text(email)
-            }
+                }
+            )
         }
     }
 }

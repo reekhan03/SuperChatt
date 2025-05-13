@@ -45,31 +45,48 @@ class ChatListViewModel : ViewModel() {
     // Новый метод для загрузки чатов с участниками
     fun loadChatsWithUsers(currentUserId: String) {
         dbRef.orderByChild("participants/$currentUserId").equalTo(true)
-            .addValueEventListener(object : ValueEventListener {
+            .addListenerForSingleValueEvent(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
-                    val chatList = mutableListOf<ChatWithUser>()
+                    val rawChats = mutableListOf<Pair<Chat, String>>()
+
                     for (chatSnapshot in snapshot.children) {
                         val chat = chatSnapshot.getValue(Chat::class.java)
                         val chatId = chatSnapshot.key ?: continue
                         val otherUserId = chat?.participants?.keys?.firstOrNull { it != currentUserId }
 
-                        if (otherUserId != null) {
-                            usersRef.child(otherUserId)
-                                .addListenerForSingleValueEvent(object : ValueEventListener {
-                                    override fun onDataChange(userSnap: DataSnapshot) {
-                                        val user = userSnap.getValue(User::class.java)
-                                        val fullChat = chat?.copy(chatId = chatId)
-                                        if (fullChat != null) {
-                                            chatList.add(ChatWithUser(fullChat, user))
-                                        }
-                                        _chatList.value = chatList
-                                    }
-
-                                    override fun onCancelled(error: DatabaseError) {
-                                        // Обработка ошибок, если не удалось загрузить данные о пользователе
-                                    }
-                                })
+                        if (chat != null && otherUserId != null) {
+                            rawChats.add(chat.copy(chatId = chatId) to otherUserId)
                         }
+                    }
+
+                    if (rawChats.isEmpty()) {
+                        _chatList.value = emptyList()
+                        return
+                    }
+
+                    val tempList = mutableListOf<ChatWithUser>()
+                    var completed = 0
+
+                    for ((chat, otherUserId) in rawChats) {
+                        usersRef.child(otherUserId)
+                            .addListenerForSingleValueEvent(object : ValueEventListener {
+                                override fun onDataChange(userSnap: DataSnapshot) {
+                                    val user = userSnap.getValue(User::class.java)
+                                    tempList.add(ChatWithUser(chat, user))
+                                    completed++
+
+                                    if (completed == rawChats.size) {
+                                        _chatList.value = tempList.sortedByDescending { it.chat.timestamp }
+                                    }
+                                }
+
+                                override fun onCancelled(error: DatabaseError) {
+                                    completed++
+                                    if (completed == rawChats.size) {
+                                        _chatList.value = tempList.sortedByDescending { it.chat.timestamp }
+                                    }
+                                }
+                            })
                     }
                 }
 
@@ -78,4 +95,5 @@ class ChatListViewModel : ViewModel() {
                 }
             })
     }
+
 }
